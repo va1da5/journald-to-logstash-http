@@ -1,0 +1,71 @@
+---
+- name: Install logstash
+  hosts: logstash
+  become: true
+  vars:
+    logstash_version: "7.x"
+    logstash_package: logstash
+    logstash_local_syslog_path: /var/log/syslog
+    logstash_dir: /usr/share/logstash
+    logs_dir: /logs
+    log_file: "{{ logs_dir }}/capture.logs"
+    logstash_enabled_on_boot: true
+
+  tasks:
+    # https://www.redhat.com/en/blog/rhel-security-sha-1-package-signatures-distrusted-rhel-9
+    - name: Switch to the legacy crypto policy
+      ansible.builtin.shell:
+        cmd: update-crypto-policies --set LEGACY
+      notify: switch to the default crypto policy
+
+    - name: Add Elasticsearch GPG key.
+      ansible.builtin.rpm_key:
+        key: https://artifacts.elastic.co/GPG-KEY-elasticsearch
+        state: present
+
+    - name: Add Logstash repository.
+      ansible.builtin.template:
+        src: logstash.repo.j2
+        dest: /etc/yum.repos.d/logstash.repo
+        mode: "0644"
+
+    - name: Install Logstash.
+      ansible.builtin.package:
+        name: "{{ logstash_package }}"
+        state: present
+
+    - name: Create Logstash configuration files.
+      ansible.builtin.template:
+        src: "{{ item }}.j2"
+        dest: "/etc/logstash/conf.d/{{ item }}"
+        owner: root
+        group: root
+        mode: "0644"
+      with_items:
+        - 01-http-input.conf
+        - 30-file-output.conf
+      notify: Restart logstash
+
+    - name: Create directory for logs
+      ansible.builtin.file:
+        path: "{{ logs_dir }}"
+        owner: logstash
+        group: logstash
+        mode: "1775"
+        state: directory
+
+    - name: Ensure Logstash is started and enabled on boot.
+      ansible.builtin.service:
+        name: logstash
+        state: started
+        enabled: "{{ logstash_enabled_on_boot }}"
+
+  handlers:
+    - name: Restart logstash
+      ansible.builtin.service:
+        name: logstash
+        state: restarted
+
+    - name: Switch to the default crypto policy
+      ansible.builtin.shell:
+        cmd: update-crypto-policies --set DEFAULT

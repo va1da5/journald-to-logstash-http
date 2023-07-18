@@ -1,0 +1,70 @@
+---
+- name: Install FluentBit
+  hosts: server
+  become: true
+  vars:
+    fluentbit_service_flush_seconds: 5
+    fluentbit_service_daemon: false
+    fluentbit_service_custom_parsers_file: []
+    fluentbit_service_log_level: info
+    fluentbit_service_enable_metrics: false
+    fluentbit_service_metrics_listen_ip: 0.0.0.0
+    fluentbit_service_metrics_listen_port: 2020
+
+    # Default inputs
+    fluentbit_inputs:
+      - Name: systemd
+        Tag: host.*
+        # Systemd_Filter: _SYSTEMD_UNIT=docker.service
+
+    # Default outputs
+    fluentbit_outputs:
+      - Name: http
+        Match: "*"
+        Host: 192.168.123.20
+        Port: 8080
+        URI: /fluentbit
+        Format: json
+
+    # Default filters
+    fluentbit_filters:
+      - Name: modify
+        Match: "*"
+        Add: Name Server001
+
+  tasks:
+    - name: Add yum repository
+      ansible.builtin.yum_repository:
+        name: TD_Agent_Bit
+        baseurl: http://packages.fluentbit.io/centos/7/$basearch/
+        gpgcheck: true
+        gpgkey: http://packages.fluentbit.io/fluentbit.key
+        description: Fluent bit repo
+        enabled: true
+
+    - name: Install fluentbit package
+      ansible.builtin.package:
+        name: td-agent-bit
+        state: present
+        update_cache: true
+      notify: Restart Fluentbit service
+
+    - name: Source td-agent-bit main conf
+      ansible.builtin.template:
+        src: td-agent-bit.conf.j2
+        dest: /etc/td-agent-bit/td-agent-bit.conf
+        mode: "0644"
+      notify: Restart Fluentbit service
+
+    - name: Ensure Fluentbit is started and enabled at boot
+      ansible.builtin.service:
+        name: td-agent-bit
+        state: started
+        enabled: true
+
+  handlers:
+    - name: Restart Fluentbit service
+      ansible.builtin.service:
+        name: td-agent-bit
+        enabled: true
+        state: restarted
