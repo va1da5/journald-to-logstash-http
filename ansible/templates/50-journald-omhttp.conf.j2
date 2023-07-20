@@ -1,0 +1,35 @@
+# {{ansible_managed}}
+
+module(load="omhttp")
+
+# Produces JSON formatted payload
+template(name="tpl_omhttp_json" type="list" option.jsonf="on") {
+    constant(outname="cluster"      value="main"            format="jsonf")
+    property(outname="host"         name="hostname"         format="jsonfr")
+    property(outname="severity"     name="syslogseverity"   format="jsonfr" caseConversion="upper" datatype="number")
+    property(outname="facility"     name="syslogfacility"   format="jsonf" datatype="number")
+    property(outname="syslog-tag"   name="syslogtag"        format="jsonfr")
+    property(outname="source"       name="app-name"         format="jsonfr" onEmpty="null")
+    property(outname="message"      name="msg"              format="jsonfr")
+
+    # custom field parsed using regex
+    property(outname="ipAddress"   name="msg"               format="jsonf" onEmpty="skip"  regex.nomatchmode="BLANK" regex.type="ERE" regex.expression="(([0-9]{1,3}\\.){3}[0-9]{1,3})" regex.match="0")
+
+    property(outname="timestamp"    name="timereported"     format="jsonfr" dateFormat="rfc3339")
+}
+
+# conditional per source
+# if $programname == "sshd" then action(...
+
+# forward all events
+action(
+    type="omhttp"
+    usehttps="off"
+    server="{{ logstash_host }}"
+    serverport="{{ logstash_port }}"
+    restpath="rsyslog"
+    template="tpl_omhttp_json"
+    action.resumeRetryCount="3"
+)
+
+

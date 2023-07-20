@@ -1,0 +1,4 @@
+---
+- ansible.builtin.import_playbook: install_logstash.yml
+- ansible.builtin.import_playbook: install_fluentbit.yml
+- ansible.builtin.import_playbook: install_rsyslog.yml

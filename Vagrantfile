@@ -12,15 +12,26 @@ Vagrant.configure("2") do |config|
       # v.linked_clone = true
     end
 
-    config.vm.define "server" do |guest|
+    config.vm.define "fluentbit" do |guest|
         guest.vm.provider "libvirt" do |vm|
             vm.memory = 1024
             vm.cpus = 1
         end
 
         guest.vm.box = "generic/alma8"
-        guest.vm.hostname = "server"
+        guest.vm.hostname = "fluentbit"
         guest.vm.network "private_network", ip: "192.168.123.10"
+    end
+
+    config.vm.define "rsyslog" do |guest|
+        guest.vm.provider "libvirt" do |vm|
+            vm.memory = 1024
+            vm.cpus = 1
+        end
+
+        guest.vm.box = "generic/alma8"
+        guest.vm.hostname = "rsyslog"
+        guest.vm.network "private_network", ip: "192.168.123.20"
     end
 
 
@@ -32,6 +43,6 @@ Vagrant.configure("2") do |config|
 
       guest.vm.box = "generic/alma9"
       guest.vm.hostname = "logstash"
-      guest.vm.network "private_network", ip: "192.168.123.20"
+      guest.vm.network "private_network", ip: "192.168.123.50"
   end
   end

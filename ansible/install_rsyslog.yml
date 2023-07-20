@@ -1,0 +1,46 @@
+---
+- name: Install rsyslog
+  hosts: rsyslog
+  become: true
+
+  tasks:
+    - name: Install rsyslog
+      ansible.builtin.package:
+        name:
+          - rsyslog
+          - rsyslog-mmjsonparse
+        state: present
+
+    - name: Install SELinux management tools
+      ansible.builtin.package:
+        name: policycoreutils-python-utils
+        state: present
+
+    - name: Create rsyslog configuration
+      tags: ["config"]
+      ansible.builtin.template:
+        src: "50-journald-omhttp.conf.j2"
+        dest: /etc/rsyslog.d/50-journald-omhttp.conf
+        owner: root
+        group: root
+        mode: "0644"
+      notify: Restart rsyslog
+
+    - name: Enable rsyslog service
+      ansible.builtin.service:
+        name: rsyslog
+        state: started
+        enabled: true
+
+    - name: Allow rsyslog send logs via custom port
+      community.general.seport:
+        ports: "{{ logstash_port }}"
+        proto: tcp
+        setype: syslogd_port_t
+        state: present
+
+  handlers:
+    - name: Restart rsyslog
+      ansible.builtin.service:
+        name: rsyslog
+        state: restarted

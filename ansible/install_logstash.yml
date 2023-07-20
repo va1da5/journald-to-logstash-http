@@ -16,7 +16,7 @@
     - name: Switch to the legacy crypto policy
       ansible.builtin.shell:
         cmd: update-crypto-policies --set LEGACY
-      notify: switch to the default crypto policy
+      notify: Switch to the default crypto policy
 
     - name: Add Elasticsearch GPG key.
       ansible.builtin.rpm_key:
@@ -59,6 +59,13 @@
         name: logstash
         state: started
         enabled: "{{ logstash_enabled_on_boot }}"
+
+    - name: Permit traffic in default zone on port {{ logstash_port }}/tcp
+      ansible.posix.firewalld:
+        port: "{{ logstash_port }}/tcp"
+        permanent: true
+        immediate: true
+        state: enabled
 
   handlers:
     - name: Restart logstash

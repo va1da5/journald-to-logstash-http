@@ -1,9 +1,14 @@
-[server]
+[fluentbit]
 192.168.123.10
 
-[logstash]
+[rsyslog]
 192.168.123.20
+
+[logstash]
+192.168.123.50
 
 [all:vars]
 ansible_ssh_user=vagrant
 ansible_ssh_private_key_file=~/.vagrant.d/insecure_private_key
+logstash_host=192.168.123.50
+logstash_port=8080
